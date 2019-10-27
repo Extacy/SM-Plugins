@@ -56,6 +56,10 @@ new Handle:g_MapList = INVALID_HANDLE;
 new Handle:g_MapMenu = INVALID_HANDLE;
 new g_mapFileSerial = -1;
 
+StringMap cooldownMap;
+KeyValues g_hMapCooldowns;
+char path[PLATFORM_MAX_PATH];
+
 #define MAPSTATUS_ENABLED (1<<0)
 #define MAPSTATUS_DISABLED (1<<1)
 #define MAPSTATUS_EXCLUDE_CURRENT (1<<2)
@@ -79,6 +83,12 @@ public OnPluginStart()
 	
 	g_Cvar_ExcludeOld = CreateConVar("sm_nominate_excludeold", "1", "Specifies if the current map should be excluded from the Nominations list", 0, true, 0.00, true, 1.0);
 	g_Cvar_ExcludeCurrent = CreateConVar("sm_nominate_excludecurrent", "1", "Specifies if the MapChooser excluded maps should also be excluded from Nominations", 0, true, 0.00, true, 1.0);
+	
+	cooldownMap = new StringMap();
+
+	BuildPath(Path_SM, path, sizeof(path), "configs/mapchooser_extended/multimap_cooldowns.cfg");
+	g_hMapCooldowns = new KeyValues("Map_Cooldowns");
+	g_hMapCooldowns.ImportFromFile(path);
 	
 	RegConsoleCmd("say", Command_Say);
 	RegConsoleCmd("say_team", Command_Say);
@@ -115,6 +125,61 @@ public OnConfigsExecuted()
 	}
 	
 	BuildMapMenu();
+}
+
+public void OnMapStart()
+{
+	Handle smc = SMC_CreateParser();
+	SMC_SetReaders(smc, NewSection, KeyValue, EndSection);
+	SMCError error = SMC_ParseFile(smc, path);
+
+	if (error != SMCError_Okay)
+	{
+		char buffer[255];
+		if (SMC_GetErrorString(error, buffer, sizeof(buffer)))
+		{
+			LogError("%s", buffer);
+		}
+	}
+
+	delete smc;
+
+	char currentMap[PLATFORM_MAX_PATH];
+	GetCurrentMap(currentMap, sizeof(currentMap));
+
+	StringMapSnapshot snapshot = cooldownMap.Snapshot();
+	for (int i = 0; i < snapshot.Length; i++)
+	{
+		char secondMap[PLATFORM_MAX_PATH];
+		snapshot.GetKey(i, secondMap, sizeof(secondMap));
+
+		char buffer[PLATFORM_MAX_PATH];
+		cooldownMap.GetString(secondMap, buffer, sizeof(buffer));
+
+		if (StrEqual(buffer, currentMap))
+		{
+			SetMapExcluded(secondMap);
+			SetTrieValue(g_mapTrie, secondMap, MAPSTATUS_DISABLED|MAPSTATUS_EXCLUDE_PREVIOUS);
+			return;
+		}
+
+		if (StrEqual(currentMap, secondMap))
+		{
+			SetMapExcluded(buffer);
+			SetTrieValue(g_mapTrie, buffer, MAPSTATUS_DISABLED|MAPSTATUS_EXCLUDE_PREVIOUS);
+			return;
+		}
+	}
+
+	delete snapshot;
+}
+
+public SMCResult NewSection(Handle smc, const char[] name, bool opt_quotes){}
+public SMCResult EndSection(Handle smc){} 
+
+public SMCResult KeyValue(Handle smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
+{
+	cooldownMap.SetString(key, value, true);
 }
 
 public OnNominationRemoved(const String:map[], owner)

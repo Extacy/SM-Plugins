@@ -398,6 +398,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 	// MapChooser Extended natives
 	CreateNative("IsMapOfficial", Native_IsMapOfficial);
 	CreateNative("CanNominate", Native_CanNominate);
+	CreateNative("SetMapExcluded", Native_SetMapExcluded);
 	
 	return APLRes_Success;
 }
@@ -2114,6 +2115,23 @@ bool:InternalIsMapOfficial(const String:mapname[])
 {
 	new officialMapIndex = FindStringInArray(g_OfficialList, mapname);
 	return (officialMapIndex > -1);
+}
+
+public int Native_SetMapExcluded(Handle plugin, int numParams)
+{
+	char map[PLATFORM_MAX_PATH], currentMap[PLATFORM_MAX_PATH];
+	GetNativeString(1, map, sizeof(map));
+	GetCurrentMap(currentMap, sizeof(currentMap));
+
+	if (StrEqual(map, currentMap))
+		return;
+
+	int index = FindStringInArray(g_OldMapList, map);
+
+	if (index != -1)
+		RemoveFromArray(g_OldMapList, index);
+
+	PushArrayString(g_OldMapList, map);
 }
 
 public Native_IsWarningTimer(Handle:plugin, numParams)

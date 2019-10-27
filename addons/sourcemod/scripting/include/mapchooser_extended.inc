@@ -88,6 +88,13 @@ forward OnMapVoteEnd(const String:map[]);
 native bool:IsMapOfficial(const String:map[]);
 
 /**
+ * Set map to be excluded or not.
+ *
+ * @param map		Map to set
+ */
+native void SetMapExcluded(const char[] map);
+
+/**
  * Is nominate allowed?
  * 
  * @return		A CanNominateResult corresponding to whether a vote is allowed or not
