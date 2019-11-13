@@ -1,3 +1,10 @@
+/*
+VIDEO DEMO: https://youtu.be/LSHq2s76vnI
+
+For use with https://github.com/Franc1sco/DevZones/tree/master/DevZones%20(CORE%20PLUGIN)
+Create a zone and prefix it with blockarea-
+*/
+
 #pragma semicolon 1
 
 #include <sourcemod>
