@@ -26,7 +26,7 @@ public Action CMD_LSlay(int client, int args)
 {
 	if (args < 1)
 	{
-		ReplyToCommand(client, "  Usage: \x0Fsm_lslay <player>");
+		ReplyToCommand(client, " \x0C➤➤➤\x0B Usage: \x0Fsm_lslay <player>");
 		return Plugin_Handled;
 	}
 
