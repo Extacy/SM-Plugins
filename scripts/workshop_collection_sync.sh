@@ -1,4 +1,4 @@
-# https://github.com/Extacy/misc/scripts/workshop_collection_sync.sh
+# https://github.com/Extacy/misc/blob/master/scripts/workshop_collection_sync.sh
 
 collections=(1942732975 1942753106 1942767730 1942784132 1942796140)
 
