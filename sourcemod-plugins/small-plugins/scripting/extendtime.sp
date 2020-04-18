@@ -1,19 +1,25 @@
 // Made this in one go while i was rlly tired, don't expect good
 
 #include <sourcemod>
+#undef REQUIRE_PLUGIN
 #include <kztimer>
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define CHAT_PREFIX " \x0C➤➤➤\x0B"
-#define CHAT_COLOR "\x0B"
+#define CHAT_PREFIX " \x02[\x01Extend Time\x02]\x01" 
+#define CHAT_COLOR "\x01"
 #define CHAT_ACCENT "\x0F"
 
+// Plugin ConVars
 ConVar g_VoteCooldown;
+ConVar g_VoteCountdown;
 
+// Plugin Variables
 int g_iCooldown[MAXPLAYERS + 1];
+bool g_bKZTimer = false;
 
+// CSGO ConVars 
 ConVar mp_timelimit;
 
 public Plugin myinfo = 
@@ -36,7 +42,25 @@ public void OnPluginStart()
     mp_timelimit = FindConVar("mp_timelimit");
     SetConVarFlags(mp_timelimit, GetConVarFlags(mp_timelimit) & ~FCVAR_NOTIFY);
 
-    g_VoteCooldown = CreateConVar("sm_extendtime_vote_cooldown", "60", "In seconds");
+    g_VoteCountdown = CreateConVar("sm_extendtime_vote_countdown", "15", "How long should the warning be before the vote is called. Prints to chat every second");
+    g_VoteCooldown = CreateConVar("sm_extendtime_vote_cooldown", "120", "In seconds, cooldown for a player to call another extend vote");
+}
+
+public void OnAllPluginsLoaded()
+{
+	g_bKZTimer = LibraryExists("KZTimer");
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if (StrEqual(name, "KZTimer"))
+		g_bKZTimer = true;
+}
+
+public void OnLibraryREmoved(const char[] name)
+{
+	if (StrEqual(name, "KZTimer"))
+		g_bKZTimer = false;
 }
 
 public Action CMD_ExtendTime(int client, int args)
@@ -53,14 +77,12 @@ public Action CMD_ExtendTime(int client, int args)
     int increase = StringToInt(arg);
     mp_timelimit.SetInt(mp_timelimit.IntValue + increase);
 
-    int timeleft;
-    GetMapTimeLeft(timeleft);
-
     int mins, secs;
-    mins = timeleft / 60;
-    secs = timeleft % 60;
+    GetMapTimeLeft(secs);
+    mins = secs / 60;
+    secs = secs % 60;
 
-    PrintToChatAll("%s %s%N%s extended the map by %s%i minutes%s! (Time left: %s%i:%02i%s)", CHAT_PREFIX, CHAT_ACCENT, client, CHAT_COLOR, CHAT_ACCENT, increase, CHAT_COLOR, CHAT_ACCENT, mins, secs, CHAT_COLOR);
+    PrintToChatAll("%s %s%N%s extended the map by %s%i minutes%s! (Timeleft: %s%i:%02i%s)", CHAT_PREFIX, CHAT_ACCENT, client, CHAT_COLOR, CHAT_ACCENT, increase, CHAT_COLOR, CHAT_ACCENT, mins, secs, CHAT_COLOR);
     return Plugin_Handled;
 }
 
@@ -122,7 +144,14 @@ public int ExtendTimeMenuHandler(Menu menu, MenuAction action, int param1, int p
 
 public Action Timer_VoteCountdown(Handle timer, DataPack pack)
 {
-    static int countdown = 15;
+    static bool active = false;
+    static int countdown;
+
+    if (!active)
+    {
+        countdown = g_VoteCountdown.IntValue;
+        active = true;
+    }
 
     if (countdown == 0)
     {
@@ -133,26 +162,30 @@ public Action Timer_VoteCountdown(Handle timer, DataPack pack)
         char info[32];
         IntToString(extend, info, sizeof(info));
     
-        int timeleft;
-        GetMapTimeLeft(timeleft);
-
         int mins, secs;
-        mins = timeleft / 60;
-        secs = timeleft % 60;
+        GetMapTimeLeft(secs);
+        mins = secs / 60;
+        secs = secs % 60;
 
         char title[64];
         Format(title, sizeof(title), "Extend Map by %i minutes? (Timeleft: %i:%02i)", extend, mins, secs);
 
-        KZTimer_StopUpdatingOfClimbersMenu(client);
+#if defined _KZTimer_included
+        if (g_bKZTimer)
+        {
+            KZTimer_StopUpdatingOfClimbersMenu(client);
+        }
+#endif
 
-        Menu vote = new Menu(VoteMenuHandler);
-        vote.SetTitle(title);
-        vote.AddItem(info, "Yes");
-        vote.AddItem("no", "No");
-        vote.ExitButton = false;
-        vote.DisplayVoteToAll(20);
+        Menu votemenu = new Menu(VoteMenuHandler);
+        votemenu.SetTitle(title);
+        votemenu.AddItem(info, "Yes");
+        votemenu.AddItem("no", "No");
+        votemenu.ExitButton = false;
+        votemenu.DisplayVoteToAll(20);
 
         PrintToChatAll("%s %s%N%s is voting to extend the map by %s%i%s minutes!", CHAT_PREFIX, CHAT_ACCENT, client, CHAT_COLOR, CHAT_ACCENT, extend, CHAT_COLOR);
+        active = false;
         return Plugin_Stop;
     }
 
@@ -166,33 +199,44 @@ public int VoteMenuHandler(Menu menu, MenuAction action, int param1, int param2)
 {
     if (action == MenuAction_Select)
     {
-        ClientCommand(param1, "sm_menu");
+#if defined _KZTimer_included
+        if (g_bKZTimer)
+        {
+            ClientCommand(param1, "sm_menu");
+        }
+#endif
     }
     else if (action == MenuAction_VoteEnd)
     {
-        /* 0=yes, 1=no */
-        if (param1 == 0)
+        int votes, totalVotes;
+        GetMenuVoteInfo(param2, votes, totalVotes);
+
+        float percent = float(votes / totalVotes);
+
+        if (param1 == 0) /* 0=yes, 1=no */
         {
-            char info[10];
-            menu.GetItem(param1, info, sizeof(info));
+            char buffer[16];
+            menu.GetItem(param1, buffer, sizeof(buffer));
+            int increase = StringToInt(buffer);
 
-            int time = StringToInt(info);
-
-            mp_timelimit.SetInt(mp_timelimit.IntValue + time);
-
-            int timeleft;
-            GetMapTimeLeft(timeleft);
+            mp_timelimit.SetInt(mp_timelimit.IntValue + increase);
 
             int mins, secs;
-            mins = timeleft / 60;
-            secs = timeleft % 60;
+            GetMapTimeLeft(secs);
+            mins = secs / 60;
+            secs = secs % 60;
 
-            PrintToChatAll("%s Vote passed! The map has been extended by %s%i%s minutes. (Timeleft: %s%i:%02i%s)", CHAT_PREFIX, CHAT_ACCENT, time, CHAT_COLOR, CHAT_ACCENT, mins, secs, CHAT_COLOR);
+            PrintToChatAll("%s Vote passed! (Recieved %s%i%% of %i votes%s)", CHAT_PREFIX, CHAT_ACCENT, RoundToNearest(100.0 * percent), totalVotes, CHAT_COLOR);
+            PrintToChatAll("%s The map has been extended by %s%i%s minutes. (Timeleft: %s%i:%02i%s)", CHAT_PREFIX, CHAT_ACCENT, increase, CHAT_COLOR, CHAT_ACCENT, mins, secs, CHAT_COLOR);
         }
         else
         {
-            PrintToChatAll("%s Not enough people voted to extend the map!", CHAT_PREFIX);
+            PrintToChatAll("%s Not enough players voted to extend the map! (Recieved %i%% of %i votes)", CHAT_PREFIX, RoundToNearest(100.0 * percent), totalVotes);
         }
+    }
+    else if (action == MenuAction_VoteCancel && param1 == VoteCancel_NoVotes)
+    {
+        PrintToChatAll("%s No players voted to extend the map!", CHAT_PREFIX);
     }
     else if (action == MenuAction_End)
     {
