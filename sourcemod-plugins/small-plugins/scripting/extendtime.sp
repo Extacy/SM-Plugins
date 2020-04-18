@@ -1,5 +1,3 @@
-// Made this in one go while i was rlly tired, don't expect good
-
 #include <sourcemod>
 #undef REQUIRE_PLUGIN
 #include <kztimer>
