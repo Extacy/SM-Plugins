@@ -16,6 +16,7 @@ ConVar g_VoteCooldown;
 ConVar g_VoteCountdown;
 
 // Plugin Variables
+Menu g_hVoteMenu = null;
 int g_iCooldown[MAXPLAYERS + 1];
 bool g_bKZTimer = false;
 
@@ -34,6 +35,7 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
     RegConsoleCmd("sm_extendvote", CMD_ExtendTimeVote);
+    RegConsoleCmd("sm_voteextend", CMD_ExtendTimeVote);
     RegConsoleCmd("sm_extendtimevote", CMD_ExtendTimeVote);
 
     RegAdminCmd("sm_extend", CMD_ExtendTime, ADMFLAG_CHANGEMAP);
@@ -42,7 +44,7 @@ public void OnPluginStart()
     mp_timelimit = FindConVar("mp_timelimit");
     SetConVarFlags(mp_timelimit, GetConVarFlags(mp_timelimit) & ~FCVAR_NOTIFY);
 
-    g_VoteCountdown = CreateConVar("sm_extendtime_vote_countdown", "15", "How long should the warning be before the vote is called. Prints to chat every second");
+    g_VoteCountdown = CreateConVar("sm_extendtime_vote_countdown", "10", "How long should the warning be before the vote is called. Prints to chat every second");
     g_VoteCooldown = CreateConVar("sm_extendtime_vote_cooldown", "120", "In seconds, cooldown for a player to call another extend vote");
 }
 
@@ -170,19 +172,20 @@ public Action Timer_VoteCountdown(Handle timer, DataPack pack)
         char title[64];
         Format(title, sizeof(title), "Extend Map by %i minutes? (Timeleft: %i:%02i)", extend, mins, secs);
 
-#if defined _KZTimer_included
         if (g_bKZTimer)
         {
-            KZTimer_StopUpdatingOfClimbersMenu(client);
+            for (int i = 1; i <= MaxClients; i++)
+            {
+                KZTimer_StopUpdatingOfClimbersMenu(i);
+            }
         }
-#endif
 
-        Menu votemenu = new Menu(VoteMenuHandler);
-        votemenu.SetTitle(title);
-        votemenu.AddItem(info, "Yes");
-        votemenu.AddItem("no", "No");
-        votemenu.ExitButton = false;
-        votemenu.DisplayVoteToAll(20);
+        g_hVoteMenu= new Menu(VoteMenuHandler, MENU_ACTIONS_ALL);
+        g_hVoteMenu.SetTitle(title);
+        g_hVoteMenu.AddItem(info, "Yes");
+        g_hVoteMenu.AddItem("no", "No");
+        g_hVoteMenu.ExitButton = false;
+        g_hVoteMenu.DisplayVoteToAll(20);
 
         PrintToChatAll("%s %s%N%s is voting to extend the map by %s%i%s minutes!", CHAT_PREFIX, CHAT_ACCENT, client, CHAT_COLOR, CHAT_ACCENT, extend, CHAT_COLOR);
         active = false;
@@ -211,7 +214,7 @@ public int VoteMenuHandler(Menu menu, MenuAction action, int param1, int param2)
         int votes, totalVotes;
         GetMenuVoteInfo(param2, votes, totalVotes);
 
-        float percent = float(votes / totalVotes);
+        float percent = float(votes) / float(totalVotes);
 
         if (param1 == 0) /* 0=yes, 1=no */
         {
@@ -226,12 +229,12 @@ public int VoteMenuHandler(Menu menu, MenuAction action, int param1, int param2)
             mins = secs / 60;
             secs = secs % 60;
 
-            PrintToChatAll("%s Vote passed! (Recieved %s%i%% of %i votes%s)", CHAT_PREFIX, CHAT_ACCENT, RoundToNearest(100.0 * percent), totalVotes, CHAT_COLOR);
+            PrintToChatAll("%s Vote passed! (%sRecieved %i%% of %i votes%s)", CHAT_PREFIX, CHAT_ACCENT, RoundToNearest(100.0 * percent), totalVotes, CHAT_COLOR);
             PrintToChatAll("%s The map has been extended by %s%i%s minutes. (Timeleft: %s%i:%02i%s)", CHAT_PREFIX, CHAT_ACCENT, increase, CHAT_COLOR, CHAT_ACCENT, mins, secs, CHAT_COLOR);
         }
         else
         {
-            PrintToChatAll("%s Not enough players voted to extend the map! (Recieved %i%% of %i votes)", CHAT_PREFIX, RoundToNearest(100.0 * percent), totalVotes);
+            PrintToChatAll("%s Not enough players voted to extend the map! (%sRecieved %i%% of %i votes%s)", CHAT_PREFIX, CHAT_ACCENT, RoundToNearest(100.0 * percent), totalVotes, CHAT_COLOR);
         }
     }
     else if (action == MenuAction_VoteCancel && param1 == VoteCancel_NoVotes)
@@ -240,6 +243,8 @@ public int VoteMenuHandler(Menu menu, MenuAction action, int param1, int param2)
     }
     else if (action == MenuAction_End)
     {
-        delete menu;
+        delete g_hVoteMenu;
     }
+
+    return 0;
 }
