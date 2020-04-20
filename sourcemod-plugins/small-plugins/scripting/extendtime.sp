@@ -57,7 +57,7 @@ public void OnLibraryAdded(const char[] name)
 		g_bKZTimer = true;
 }
 
-public void OnLibraryREmoved(const char[] name)
+public void OnLibraryRemoved(const char[] name)
 {
 	if (StrEqual(name, "KZTimer"))
 		g_bKZTimer = false;
