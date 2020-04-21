@@ -1,1 +1,0 @@
-tmux new -A -s kztimer /mnt/sdb/steam/kztimer/srcds_run -game csgo +map kz_abstruse_od2 -usercon -strictportbind +game_type 0 +game_mode 0 +sv_setsteamaccount C7C0ADA2A1FD812B60D084A5ABC7D3D4 -authkey 104AB5994472C45FCC845CD8C184202C -net_port_try 1 -ip 0.0.0.0 -nohltv -port 27015 -tickrate 128
