@@ -1,4 +1,4 @@
-# Dual-Map-Cooldowns
+# Multi Map Cooldown
 For use with https://github.com/powerlord/sourcemod-mapchooser-extended. Edited to allow two maps to share the same nomination cooldown. 
 
 # Configuration

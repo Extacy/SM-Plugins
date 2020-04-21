@@ -1,9 +1,12 @@
 #include <sourcemod>
 #include <sdktools>
+#undef REQUIRE_PLUGIN
 #include <redie_beta>
 
 #pragma semicolon 1
 #pragma newdecls required
+
+bool g_bRedie = false;
 
 bool g_bQueueSlay[MAXPLAYERS + 1] = { false, ... };
 
@@ -22,6 +25,23 @@ public void OnPluginStart()
 	RegAdminCmd("sm_lslay", CMD_LSlay, ADMFLAG_SLAY);
 }
 
+public void OnAllPluginsLoaded()
+{
+	g_bRedie = LibraryExists("redie_beta");
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if (StrEqual(name, "redie_beta"))
+		g_bRedie = true;
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if (StrEqual(name, "redie_beta"))
+		g_bRedie = false;
+}
+
 public Action CMD_LSlay(int client, int args)
 {
 	if (args < 1)
@@ -38,10 +58,7 @@ public Action CMD_LSlay(int client, int args)
 	{
 		g_bQueueSlay[target] = !g_bQueueSlay[target];
 
-		if (g_bQueueSlay[target])
-			PrintToChatAll(" \x0C➤➤➤\x0B \x0F%N \x0Bhas marked \x0F%N \x0Bto be slayed next round!", client, target);
-		else
-			PrintToChatAll(" \x0C➤➤➤\x0B \x0F%N \x0Bhas unmarked \x0F%N \x0Bto be slayed next round!", client, target);
+		PrintToChatAll(" \x0C➤➤➤\x0B \x0F%N \x0Bhas %s \x0F%N \x0Bto be slayed next round!", client, g_bQueueSlay[target] ? "marked" : "unmarked", target);
 	}
 
 	return Plugin_Handled;
@@ -51,7 +68,10 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 
-	if (g_bQueueSlay[client] && !Redie_IsGhost(client))
+	if (g_bRedie && Redie_IsGhost(client))
+		return;
+
+	if (g_bQueueSlay[client])
 	{
 		ForcePlayerSuicide(client);
 		PrintToChat(client, " \x0C➤➤➤\x0B You were slain by an admin!");

@@ -1,15 +1,8 @@
-/*
-If a CT types 'kill' in console, their weapons won't drop.
-If the CT was recently in combat (5 seconds) with a T, their weapons WILL drop. (this is so CTs can't suicide when they're about to die)
-*/
-
-#pragma semicolon 1
-
 #include <sourcemod>
 #include <sdktools>
-#include <sdkhooks>
 
 #pragma newdecls required
+#pragma semicolon 1
 
 #define	CS_TEAM_T	2
 #define	CS_TEAM_CT	3
