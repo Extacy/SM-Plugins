@@ -5,6 +5,9 @@
 #pragma newdecls required
 
 Handle g_hTimer = null;
+ConVar mp_timelimit;
+bool g_bChangeMap = true;
+
 
 public Plugin myinfo = 
 {
@@ -15,13 +18,23 @@ public Plugin myinfo =
     url = "https://steamcommunity.com/profiles/76561198183032322"
 };
 
+public void OnPluginStart()
+{
+    mp_timelimit = FindConVar("mp_timelimit");
+    mp_timelimit.AddChangeHook(OnTimelimitChanged);
+}
+
 public void OnMapStart()
 {
+    if (mp_timelimit.IntValue == 0)
+        g_bChangeMap = false;
+
     StartTimer();
 }
 
 public void OnMapEnd()
 {
+    g_bChangeMap = true;
     StopTimer();
 }
 
@@ -39,6 +52,12 @@ void StopTimer()
     g_hTimer = null;
 }
 
+public void OnTimelimitChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    if (StringToInt(newValue) > 0)
+        g_bChangeMap = true;
+}
+
 public Action Timer_CheckTimeleft(Handle timer, any data)
 {
     int time;
@@ -51,12 +70,12 @@ public Action Timer_CheckTimeleft(Handle timer, any data)
         return Plugin_Continue;
 
     // Map has ended
-    if (time <= 0)
+    if (g_bChangeMap && time < 0)
     {
-        char map[PLATFORM_MAX_PATH];
-        if (GetNextMap(map, sizeof(map)))
+        char nextMap[PLATFORM_MAX_PATH];
+        if (GetNextMap(nextMap, sizeof(nextMap)))
         {
-            ForceChangeLevel(map, "forcemapend.smx");
+            ForceChangeLevel(nextMap, "forcemapend.smx");
             g_hTimer = null;
             return Plugin_Stop;
         }
