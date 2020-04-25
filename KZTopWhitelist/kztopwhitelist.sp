@@ -1,13 +1,16 @@
 #include <sourcemod>
 #include <sdktools>
+#include <forum_api>
 
 #pragma semicolon 1
 #pragma newdecls required
 
 Database g_dDatabase = null;
 
-ConVar g_MaxRank;
+ConVar g_MinRank;
 ConVar g_AllowVIP;
+
+bool g_bForumAdmins = false;
 
 public Plugin myinfo = 
 {
@@ -21,15 +24,32 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
     AutoExecConfig(true, "kzwhitelist");
-    g_MaxRank = CreateConVar("sm_kzwhitelist_max", "100", "Players at or above this value are whitelisted");
+    g_MinRank = CreateConVar("sm_kzwhitelist_max", "100", "Players at or above this value are whitelisted");
     g_AllowVIP = CreateConVar("sm_kzwhitelist_vip", "1", "Allow VIPs to join the server regardless of their rank");
 }
+
+public void OnAllPluginsLoaded()
+{
+    g_bForumAdmins = LibraryExists("forum_admins");
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+    if (StrEqual(name, "forum_admins"))
+        g_bForumAdmins = true; 
+}
+
+public void OnLibraryRemoved(const char[] name) 
+{ 	
+    if (StrEqual(name, "forum_admins"))
+        g_bForumAdmins = false;
+} 
 
 public void OnConfigsExecuted()
 {    
     if (g_dDatabase != null)
     {
-        LogError("(KZ Whitelist) Database is already connected!");
+        LogError("[KZ Whitelist] Database is already connected!");
         return;
     }
 
@@ -40,27 +60,47 @@ public void SQLConnectCallback(Database db, const char[] error, any data)
 {
     if (db == null)
     {
-        SetFailState("(KZ Whitelist) Could not connect to database! Error: %s", error);
+        SetFailState("[KZ Whitelist] Could not connect to database! Error: %s", error);
     }
 
     g_dDatabase = db;
 }
 
+public void Forum_OnProcessed(int client, int forum_userid)
+{
+    if (g_bForumAdmins) // probably redundant
+        IsPlayerWhitelisted(client);
+}
+
 public void OnClientPostAdminCheck(int client)
 {
-    // Only kick valid players
+    if (!g_bForumAdmins)
+        IsPlayerWhitelisted(client);
+}
+
+void IsPlayerWhitelisted(int client)
+{
     if (!IsValidClient(client))
         return;
 
     char steamid[32];
     GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid));
 
-    // Allow admins and if true, VIPs
-    if (CheckCommandAccess(client, "", ADMFLAG_GENERIC) || (g_AllowVIP.BoolValue && CheckCommandAccess(client, "", ADMFLAG_RESERVATION)))
+    // Allow admins
+    if (CheckCommandAccess(client, "", ADMFLAG_GENERIC))
+    {
+        PrintToServer("[KZ Whitelist] Whitelisted %N. (Player is admin)", client);
         return;
+    }
+
+    if (g_AllowVIP.BoolValue && CheckCommandAccess(client, "", ADMFLAG_RESERVATION))
+    {
+        PrintToServer("[KZ Whitelist] Whitelisted %N. (Player is VIP)", client);
+        return;
+    }
 
     char query[256];
-    Format(query, sizeof(query), "SELECT * FROM (SELECT `steamid`, `points` FROM `playerrank` ORDER BY `points` DESC LIMIT %i) AS subquery WHERE `steamid` = '%s'", g_MaxRank.IntValue, steamid);
+    Format(query, sizeof(query), "SELECT * FROM (SELECT `steamid`, `points` FROM `playerrank` ORDER BY `points` DESC LIMIT %i) AS subquery WHERE `steamid` = '%s'", g_MinRank.IntValue, steamid);
    
     g_dDatabase.Query(SQL_QueryCallback, query, GetClientUserId(client));
 }
@@ -69,14 +109,18 @@ public void SQL_QueryCallback(Database db, DBResultSet results, const char[] err
 {
     if (db == null || strlen(error) > 0)
     {
-        LogError("(KZ Whitelist) Query failed: %s", error);
+        LogError("[KZ Whitelist] Query failed: %s", error);
         return;
     }
 
     int client = GetClientOfUserId(userid);
     if (!results.HasResults || !results.FetchRow())
     {
-        KickClient(client, "This server is whitelisted for the top %i players of our main KZ server. Join our public server (173.234.30.235:27015) in the mean time!", g_MaxRank.IntValue);
+        KickClient(client, "This server is whitelisted for the top %i players of our main KZ server. Join our public server (173.234.30.235:27015) in the mean time!", g_MinRank.IntValue);
+    }
+    else
+    {
+        PrintToServer("[KZ Whitelist] Whitelisted %N. (Player is in top %i)", client, g_MinRank);
     }
 }
 
