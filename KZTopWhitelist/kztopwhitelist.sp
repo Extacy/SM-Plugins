@@ -74,7 +74,7 @@ public void SQL_QueryCallback(Database db, DBResultSet results, const char[] err
     }
 
     int client = GetClientOfUserId(userid);
-    if (!results.HasResults)
+    if (!results.HasResults || !results.FetchRow())
     {
         KickClient(client, "This server is whitelisted for the top %i players of our main KZ server. Join our public server (173.234.30.235:27015) in the mean time!", g_MaxRank.IntValue);
     }
