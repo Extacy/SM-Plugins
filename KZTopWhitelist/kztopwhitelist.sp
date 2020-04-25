@@ -20,8 +20,6 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-    LoadTranslations("common.phrases");
-
     AutoExecConfig(true, "kzwhitelist");
     g_MaxRank = CreateConVar("sm_kzwhitelist_max", "100", "Players at or above this value are whitelisted");
     g_AllowVIP = CreateConVar("sm_kzwhitelist_vip", "1", "Players at or above this value are whitelisted");
@@ -29,11 +27,6 @@ public void OnPluginStart()
 
 public void OnConfigsExecuted()
 {    
-    DB_Connect();
-}
-
-public void DB_Connect()
-{
     if (g_dDatabase != null)
     {
         LogError("(KZ Whitelist) Database is already connected!");
@@ -81,8 +74,7 @@ public void SQL_QueryCallback(Database db, DBResultSet results, const char[] err
     }
 
     int client = GetClientOfUserId(userid);
-
-    if (!results.HasResults || !results.FetchRow())
+    if (!results.HasResults)
     {
         KickClient(client, "This server is whitelisted for the top %i players of our main KZ server. Join our public server (173.234.30.235:27015) in the mean time!", g_MaxRank.IntValue);
     }
