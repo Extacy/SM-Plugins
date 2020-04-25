@@ -1,6 +1,5 @@
 #include <sourcemod>
 #include <sdktools>
-#include <forum_api>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -9,8 +8,6 @@ Database g_dDatabase = null;
 
 ConVar g_MinRank;
 ConVar g_AllowVIP;
-
-bool g_bForumAdmins = false;
 
 public Plugin myinfo = 
 {
@@ -27,23 +24,6 @@ public void OnPluginStart()
     g_MinRank = CreateConVar("sm_kzwhitelist_max", "100", "Players at or above this value are whitelisted");
     g_AllowVIP = CreateConVar("sm_kzwhitelist_vip", "1", "Allow VIPs to join the server regardless of their rank");
 }
-
-public void OnAllPluginsLoaded()
-{
-    g_bForumAdmins = LibraryExists("forum_admins");
-}
-
-public void OnLibraryAdded(const char[] name)
-{
-    if (StrEqual(name, "forum_admins"))
-        g_bForumAdmins = true; 
-}
-
-public void OnLibraryRemoved(const char[] name) 
-{ 	
-    if (StrEqual(name, "forum_admins"))
-        g_bForumAdmins = false;
-} 
 
 public void OnConfigsExecuted()
 {    
@@ -66,16 +46,9 @@ public void SQLConnectCallback(Database db, const char[] error, any data)
     g_dDatabase = db;
 }
 
-public void Forum_OnProcessed(int client, int forum_userid)
-{
-    if (g_bForumAdmins) // probably redundant
-        IsPlayerWhitelisted(client);
-}
-
 public void OnClientPostAdminCheck(int client)
 {
-    if (!g_bForumAdmins)
-        IsPlayerWhitelisted(client);
+    IsPlayerWhitelisted(client);
 }
 
 void IsPlayerWhitelisted(int client)
