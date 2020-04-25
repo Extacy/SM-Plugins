@@ -82,7 +82,7 @@ public void SQL_QueryCallback(Database db, DBResultSet results, const char[] err
 {
     if (db == null || strlen(error) > 0)
     {
-        LogError("[KZ Whitelist] Query failed: %s", error);
+        SetFailState("[KZ Whitelist] Query failed: %s", error);
         return;
     }
 
@@ -93,7 +93,7 @@ public void SQL_QueryCallback(Database db, DBResultSet results, const char[] err
     }
     else
     {
-        PrintToServer("[KZ Whitelist] Whitelisted %N. (Player is in top %i)", client, g_MinRank);
+        PrintToServer("[KZ Whitelist] Whitelisted %N. (Player is in top %i)", client, g_MinRank.IntValue);
     }
 }
 
