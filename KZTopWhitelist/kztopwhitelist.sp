@@ -22,7 +22,7 @@ public void OnPluginStart()
 {
     AutoExecConfig(true, "kzwhitelist");
     g_MaxRank = CreateConVar("sm_kzwhitelist_max", "100", "Players at or above this value are whitelisted");
-    g_AllowVIP = CreateConVar("sm_kzwhitelist_vip", "1", "Players at or above this value are whitelisted");
+    g_AllowVIP = CreateConVar("sm_kzwhitelist_vip", "1", "Allow VIPs to join the server regardless of their rank");
 }
 
 public void OnConfigsExecuted()
