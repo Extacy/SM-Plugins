@@ -90,6 +90,8 @@ void SendChatboxMessage(int admin, int target, int length, const char[] banType,
 	bool hasReason = strlen(reason) > 0;
 	if (length == 0)
 		Format(message, sizeof(message), "%s [%s] was permanently %s by %s! Reason: %s", targetName, targetSteamID, banType, adminName, hasReason ? reason : "none");
+	else if (length == -1)
+		Format(message, sizeof(message), "%s [%s] was session %s by %s! Reason: %s", targetName, targetSteamID, banType, adminName, hasReason ? reason : "none");
 	else
 		Format(message, sizeof(message), "%s [%s] was %s by %s for %i minutes! Reason: %s", targetName, targetSteamID, banType, adminName, length, hasReason ? reason : "none");
 
