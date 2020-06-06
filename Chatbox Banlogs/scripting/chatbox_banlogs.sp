@@ -45,7 +45,7 @@ public Action SNGJailbreak_Bans_OnCTBanClient(int admin, int target, int length,
 
 public void SBPP_OnBanPlayer(int admin, int target, int length, const char[] reason)
 {
-	SendChatboxMessage(admin, target, length, "Banned", reason);
+	SendChatboxMessage(admin, target, length, "banned", reason);
 }
 
 public void SourceComms_OnBlockAdded(int admin, int target, int length, int type, char[] reason)
@@ -55,11 +55,11 @@ public void SourceComms_OnBlockAdded(int admin, int target, int length, int type
 	switch(type)
 	{
 		case 1:
-			banType = "Muted";
+			banType = "muted";
 		case 2:
-			banType = "Gagged";
+			banType = "gagged";
 		case 3:
-			banType = "Silenced";
+			banType = "silenced";
 	}
 
 	SendChatboxMessage(admin, target, length, banType, reason);
