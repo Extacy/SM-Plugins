@@ -86,7 +86,11 @@ void SendChatboxMessage(int admin, int target, int length, const char[] banType,
 		GetClientName(admin, adminName, sizeof(adminName));
 		
 	char message[400]; // max chatbox chars
-	Format(message, sizeof(message), "%s [%s] was %s by %s for %i minutes! Reason: %s", targetName, targetSteamID, banType, adminName, length, reason);
+
+	if (length == 0)
+		Format(message, sizeof(message), "%s [%s] was permanently %s by %s! Reason: %s", targetName, targetSteamID, banType, adminName, length, reason);
+	else
+		Format(message, sizeof(message), "%s [%s] was %s by %s for %i minutes! Reason: %s", targetName, targetSteamID, banType, adminName, length, reason);
 
 	char[] messageEscaped = new char[strlen(message) * 2 + 1];
 	SQL_EscapeString(g_ChatboxDatabase, message, messageEscaped, strlen(message) * 2 + 1);
