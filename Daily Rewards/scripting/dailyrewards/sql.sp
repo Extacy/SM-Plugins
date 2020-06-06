@@ -20,7 +20,8 @@ void SQL_CreateTables()
 			`id` INT NOT NULL AUTO_INCREMENT, \
 			`steamid64` VARCHAR(32) NOT NULL, \
 			`time_redeemed` INT NOT NULL, \
-			`times_redeemed` INT NOT NULL, \
+			`times_redeemed` INT DEFAULT 1, \
+			`streak` INT DEFAULT 0, \
 			PRIMARY KEY (`id`) \
 		) ENGINE = InnoDB;");
 
@@ -52,7 +53,7 @@ void SQL_CheckLastRedeemed(int client)
 	char authid[32];
 	GetClientAuthId(client, AuthId_SteamID64, authid, sizeof(authid));
 	
-	Format(query, sizeof(query), "SELECT `time_redeemed` FROM `dailyrewards` WHERE `steamid64`='%s'", authid);						 
+	Format(query, sizeof(query), "SELECT `time_redeemed`, `streak` FROM `dailyrewards` WHERE `steamid64`='%s'", authid);						 
 	g_Database.Query(SQL_OnCheckLastRedeemed, query, GetClientUserId(client));
 }
 
@@ -60,14 +61,14 @@ public void SQL_OnCheckLastRedeemed(Database db, DBResultSet results, const char
 {
 	int client = GetClientOfUserId(userid);
 
-	if (!IsValidClient(client))
-		return;
-
 	if (db == null || strlen(error) > 0)
 	{
 		g_bRedeemingReward[client] = false;
 		LogError("Query failed: %s", error);
 	}
+
+	DataPack pack = new DataPack();
+	pack.WriteCell(userid);
 
 	int currentTime = GetTime();
 
@@ -76,33 +77,61 @@ public void SQL_OnCheckLastRedeemed(Database db, DBResultSet results, const char
 
 	if (results.RowCount == 0)
 	{
+		pack.WriteCell(0); // streak
+		pack.WriteCell(false);
 		char query[2048];
-		Format(query, sizeof(query), "INSERT INTO `dailyrewards` ( `steamid64`, `time_redeemed`, `times_redeemed` ) VALUES ('%s', '%i', '%i');", authid, currentTime, 1);						 
+		Format(query, sizeof(query), "INSERT INTO `dailyrewards` ( `steamid64`, `time_redeemed` ) VALUES ('%s', '%i' );", authid, currentTime);				 
 		g_Database.Query(SQL_OnRowUpdated, query, GetClientUserId(client));
 		return;
 	}
 
 	results.FetchRow();
 	int lastRedeemed = results.FetchInt(0);
-	int cooldown = g_RewardCooldown.IntValue;
+	int streak = results.FetchInt(1);
 
+	int cooldown = g_RewardCooldown.IntValue;
 	int difference = currentTime - lastRedeemed;
+
 	if (difference >= cooldown)
 	{
+		pack.WriteCell(streak);
+
 		char query[2048];
-		Format(query, sizeof(query), "UPDATE `dailyrewards` SET `times_redeemed` = times_redeemed + 1, `time_redeemed` = '%i' WHERE `steamid64` = '%s';", currentTime, authid);						 
-		g_Database.Query(SQL_OnRowUpdated, query, GetClientUserId(client));
+		Format(query, sizeof(query), "UPDATE `dailyrewards` SET `times_redeemed` = `times_redeemed` + 1, `time_redeemed` = '%i' WHERE `steamid64` = '%s';", currentTime, authid);						 
+		g_Database.Query(SQL_OnRowUpdated, query, pack);
+
+		if (difference <= 86400 && streak + 1 > g_Streak.IntValue)
+		{
+			Format(query, sizeof(query), "UPDATE `dailyrewards` SET `streak` = 0 WHERE `steamid64` = '%s';", authid);
+			pack.WriteCell(true);
+		}
+		else
+		{
+			Format(query, sizeof(query), "UPDATE `dailyrewards` SET `streak` = `streak` + 1 WHERE `steamid64` = '%s';", authid);
+			pack.WriteCell(false);
+		}
+
+		g_Database.Query(SQL_VoidCallback, query);
 	}
 	else
 	{
 		char time[32];
 		ShowTime(cooldown - difference, time, sizeof(time));
 		PrintToChat(client, " \x02[\x01Daily Reward\x02]\x01 You may redeem your next reward in %s.", time);
+		g_bRedeemingReward[client] = false;
+		delete pack;
 	}
 }
 
-public void SQL_OnRowUpdated(Database db, DBResultSet results, const char[] error, int userid)
+public void SQL_OnRowUpdated(Database db, DBResultSet results, const char[] error, DataPack pack)
 {
+	PrintToChatAll("bruh");
+	pack.Reset();
+	int userid = pack.ReadCell();
+	int streak = pack.ReadCell();
+	bool giveStreak = pack.ReadCell();
+	delete pack;
+	
 	int client = GetClientOfUserId(userid);
 
 	if (db == null || strlen(error) > 0)
@@ -114,10 +143,15 @@ public void SQL_OnRowUpdated(Database db, DBResultSet results, const char[] erro
 	if (!IsValidClient(client))
 		return;
 
-	int amount = g_RewardAmount.IntValue;
-	PrintToChat(client, " \x02[\x01Daily Reward\x02]\x01 You have redeemed your reward of \x0F%i\x01 credits.", amount);
-	ServerCommand("sm_givecredits #%i %i", userid, amount);
-	
+	PrintToChat(client, " \x02[\x01Daily Reward\x02]\x01 You have redeemed your reward of \x0F%i\x01 credits. (\x0FStreak: %i\x01)", g_RewardAmount.IntValue, streak);
+	ServerCommand("sm_givecredits #%i %i", userid, g_RewardAmount.IntValue);
+
+	if (giveStreak)
+	{
+		PrintToChat(client, " \x02[\x01Daily Reward\x02]\x01 You have redeemed your \x02bonus\x01 reward of \x0F%i\x01 credits.", g_StreakAmount.IntValue);
+		ServerCommand("sm_givecredits #%i %i", userid, g_RewardAmount.IntValue);
+	}
+
 	g_bRedeemingReward[client] = false;
 }
 
