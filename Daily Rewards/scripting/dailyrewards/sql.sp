@@ -82,7 +82,7 @@ public void SQL_OnCheckLastRedeemed(Database db, DBResultSet results, const char
 		pack.WriteCell(false);
 		char query[2048];
 		Format(query, sizeof(query), "INSERT INTO `dailyrewards` ( `steamid64`, `time_redeemed` ) VALUES ('%s', '%i' );", authid, currentTime);				 
-		g_Database.Query(SQL_OnRowUpdated, query, GetClientUserId(client));
+		g_Database.Query(SQL_OnRowUpdated, query, pack);
 		return;
 	}
 
