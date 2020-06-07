@@ -64,6 +64,7 @@ public void SQL_OnCheckLastRedeemed(Database db, DBResultSet results, const char
 	if (db == null || strlen(error) > 0)
 	{
 		g_bRedeemingReward[client] = false;
+		PrintToChat(client, " \x02[\x01Daily Reward\x02]\x01 An error occured when attempting to redeem your reward.");
 		LogError("Query failed: %s", error);
 	}
 
@@ -125,7 +126,6 @@ public void SQL_OnCheckLastRedeemed(Database db, DBResultSet results, const char
 
 public void SQL_OnRowUpdated(Database db, DBResultSet results, const char[] error, DataPack pack)
 {
-	PrintToChatAll("bruh");
 	pack.Reset();
 	int userid = pack.ReadCell();
 	int streak = pack.ReadCell();
@@ -137,6 +137,7 @@ public void SQL_OnRowUpdated(Database db, DBResultSet results, const char[] erro
 	if (db == null || strlen(error) > 0)
 	{
 		g_bRedeemingReward[client] = false;
+		PrintToChat(client, " \x02[\x01Daily Reward\x02]\x01 An error occured when attempting to redeem your reward.");
 		LogError("Query failed: %s", error);
 	}
 
