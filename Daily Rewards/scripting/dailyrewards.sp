@@ -7,6 +7,7 @@ Database g_Database;
 
 ConVar g_RewardAmount;
 ConVar g_RewardCooldown;
+ConVar g_RewardAutoGive;
 ConVar g_Streak;
 ConVar g_StreakAmount;
 
@@ -33,6 +34,7 @@ public void OnPluginStart()
 	AutoExecConfig(true, "dailyrewards");
 	g_RewardAmount = CreateConVar("sm_dailyrewards_amount", "200", "Amount of credits to be gifted when reward redeemed");
 	g_RewardCooldown = CreateConVar("sm_dailyrewards_cooldown", "86400", "Cooldown in seconds");
+	g_RewardAutoGive = CreateConVar("sm_dailyrewards_autogive", "1", "Set to redeem reward automatically after connecting to the server");
 	g_Streak = CreateConVar("sm_dailyrewards_streak", "5", "Days in a row to earn a bonus amount of credits");
 	g_StreakAmount = CreateConVar("sm_dailyrewards_streak_amount", "500", "Amount of bonus credits to be gifted");
 
@@ -43,7 +45,9 @@ public void OnPluginStart()
 public void OnClientPostAdminCheck(int client)
 {
 	g_bRedeemingReward[client] = false;
-	// CreateTimer(5.0, Timer_RedeemReward, GetClientUserId(client));
+
+	if (g_RewardAutoGive.BoolValue)
+		CreateTimer(5.0, Timer_RedeemReward, GetClientUserId(client));
 }
 
 public Action Timer_RedeemReward(Handle timer, int userid)
