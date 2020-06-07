@@ -11,7 +11,7 @@ ConVar g_RewardAutoGive;
 ConVar g_Streak;
 ConVar g_StreakAmount;
 
-bool g_bRedeemingReward[MAXPLAYERS + 1] = { false, ... }; // Disable redeeming rewards while the plugin is querying the DB. (Fixes exploiting)
+bool g_bRedeemingReward[MAXPLAYERS + 1] = { false, ... }; // Disable redeeming rewards while the plugin is querying the DB. (To prevent exploiting)
 
 #include "dailyrewards/sql.sp"
 #include "dailyrewards/stocks.sp"
@@ -27,16 +27,16 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-	RegConsoleCmd("sm_dailyreward", CMD_DailyReward);
-	RegConsoleCmd("sm_daily", CMD_DailyReward);
-	RegConsoleCmd("sm_reward", CMD_DailyReward);
-
 	AutoExecConfig(true, "dailyrewards");
 	g_RewardAmount = CreateConVar("sm_dailyrewards_amount", "200", "Amount of credits to be gifted when reward redeemed");
 	g_RewardCooldown = CreateConVar("sm_dailyrewards_cooldown", "86400", "Cooldown in seconds");
 	g_RewardAutoGive = CreateConVar("sm_dailyrewards_autogive", "1", "Set to redeem reward automatically after connecting to the server");
 	g_Streak = CreateConVar("sm_dailyrewards_streak", "5", "Days in a row to earn a bonus amount of credits");
 	g_StreakAmount = CreateConVar("sm_dailyrewards_streak_amount", "500", "Amount of bonus credits to be gifted");
+
+	RegConsoleCmd("sm_dailyreward", CMD_DailyReward);
+	RegConsoleCmd("sm_daily", CMD_DailyReward);
+	RegConsoleCmd("sm_reward", CMD_DailyReward);
 
 	g_Database = null;
 	Database.Connect(SQL_OnDBConnected, "dailyrewards");
