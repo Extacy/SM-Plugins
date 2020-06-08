@@ -60,16 +60,16 @@ public void LoadWhitelistExceptions()
     if (!file)
         SetFailState("[kztopwhitelist.smx] Could not load %s", path);
 
-    char steamid[32];
+    char buffer[64];
     while (!IsEndOfFile(file))
     {
-        ReadFileLine(file, steamid, sizeof(steamid));
-        TrimString(steamid);
+        ReadFileLine(file, buffer, sizeof(buffer));
+        TrimString(buffer);
 
-        if (steamid[0] == '\0' || strncmp(steamid, "//", 2) == 0)
+        if (buffer[0] == '\0' || strncmp(buffer, "//", 2) == 0)
             continue;
         
-        g_WhitelistExceptions.PushString(steamid);
+        g_WhitelistExceptions.PushString(buffer);
         g_iExceptionCount++;
     }
 }
