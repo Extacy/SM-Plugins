@@ -7,6 +7,9 @@
 Database g_dbKZTimer = null;
 Database g_dbForum = null;
 
+ArrayList g_WhitelistExceptions;
+int g_iExceptionCount;
+
 int g_iAdminIdCount;
 int g_iAdminIDs[128];
 
@@ -24,11 +27,51 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
+    RegAdminCmd("sm_kzwhitelist_reload_exceptions", CMD_ReloadExceptions, ADMFLAG_ROOT);
+    g_WhitelistExceptions = new ArrayList(256);
+    LoadWhitelistExceptions();
+
     AutoExecConfig(true, "kzwhitelist");
     g_MinRank = CreateConVar("sm_kzwhitelist_max", "100", "Players at or above this value are whitelisted");
     g_AllowVIP = CreateConVar("sm_kzwhitelist_vip", "1", "Allow VIPs to join the server regardless of their rank");
 
     LoadAdminIDs();
+}
+
+public Action CMD_ReloadExceptions(int client, int args)
+{
+    LoadWhitelistExceptions();
+    ReplyToCommand(client, "[KZ Top Whitelist] Reloaded exception list!");
+}
+
+public void LoadWhitelistExceptions()
+{
+    g_iExceptionCount = 0;
+    g_WhitelistExceptions.Clear();
+
+    char path[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, path, sizeof(path), "configs/kztopwhitelist/exceptions.txt");
+
+    if (!FileExists(path))
+        SetFailState("[kztopwhitelist.smx] Could not load %s", path);
+
+    File file = OpenFile(path, "rt");
+
+    if (!file)
+        SetFailState("[kztopwhitelist.smx] Could not load %s", path);
+
+    char steamid[32];
+    while (!IsEndOfFile(file))
+    {
+        ReadFileLine(file, steamid, sizeof(steamid));
+        TrimString(steamid);
+
+        if (steamid[0] == '\0' || strncmp(steamid, "//", 2) == 0)
+            continue;
+        
+        g_WhitelistExceptions.PushString(steamid);
+        g_iExceptionCount++;
+    }
 }
 
 public void LoadAdminIDs()
@@ -103,6 +146,17 @@ void IsPlayerAdmin(int client)
 {
     char steamid[32];
     GetClientAuthId(client, AuthId_SteamID64, steamid, sizeof(steamid));
+
+    for (int i = 0; i < g_iExceptionCount; i++)
+    {
+        char buffer[32];
+        g_WhitelistExceptions.GetString(i, buffer, sizeof(buffer));
+        if (StrEqual(steamid, buffer))
+        {
+            PrintToServer("[KZ Whitelist] Whitelisted %N. (Player is on exception list)", client);
+            return;
+        }
+    }
 
     char query[256];
     Format(query, sizeof(query), "SELECT `member_group_id` FROM `ipb_core_members` WHERE `steamid` = '%s' LIMIT 1", steamid);

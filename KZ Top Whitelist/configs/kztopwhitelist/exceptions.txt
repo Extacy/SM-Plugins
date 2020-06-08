@@ -1,0 +1,2 @@
+// Place SteamIDs that should ignore the whitelist
+STEAM_1:0:111383297
