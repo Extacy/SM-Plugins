@@ -144,14 +144,18 @@ public void OnClientPostAdminCheck(int client)
 
 void IsPlayerAdmin(int client)
 {
-    char steamid[32];
-    GetClientAuthId(client, AuthId_SteamID64, steamid, sizeof(steamid));
+    char steamid64[32];
+    GetClientAuthId(client, AuthId_SteamID64, steamid64, sizeof(steamid64));
 
     for (int i = 0; i < g_iExceptionCount; i++)
     {
+        char steamid2[32];
+        GetClientAuthId(client, AuthId_Steam2, steamid2, sizeof(steamid2));
+
         char buffer[32];
         g_WhitelistExceptions.GetString(i, buffer, sizeof(buffer));
-        if (StrEqual(steamid, buffer))
+        
+        if (StrEqual(steamid2, buffer))
         {
             PrintToServer("[KZ Whitelist] Whitelisted %N. (Player is on exception list)", client);
             return;
@@ -159,7 +163,7 @@ void IsPlayerAdmin(int client)
     }
 
     char query[256];
-    Format(query, sizeof(query), "SELECT `member_group_id` FROM `ipb_core_members` WHERE `steamid` = '%s' LIMIT 1", steamid);
+    Format(query, sizeof(query), "SELECT `member_group_id` FROM `ipb_core_members` WHERE `steamid` = '%s' LIMIT 1", steamid64);
    
     g_dbForum.Query(SQL_OnAdminCheck, query, GetClientUserId(client));
 }
