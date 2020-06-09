@@ -10,19 +10,23 @@
 
 Database g_ChatboxDatabase;
 
+ConVar g_MinLength;
+
 public Plugin myinfo = 
 {
-    name = "Chatbox Banlogs", 
-    author = "Extacy", 
-    description = "Logs Sourcebans/CT Bans to IPS forum chatbox", 
-    version = "1.0", 
-    url = "https://steamcommunity.com/profiles/76561198183032322"
+	name = "Chatbox Banlogs", 
+	author = "Extacy", 
+	description = "Logs Sourcebans/CT Bans to IPS forum chatbox", 
+	version = "1.0", 
+	url = "https://steamcommunity.com/profiles/76561198183032322"
 };
 
 public void OnPluginStart()
 {
-    g_ChatboxDatabase = null;
-    Database.Connect(OnDBConnected, "forum");
+	g_ChatboxDatabase = null;
+	Database.Connect(OnDBConnected, "forum");
+
+	g_MinLength = CreateConVar("sm_chatboxlogs_minlength", "30");
 }
 
 public void OnDBConnected(Database db, const char[] error, any data)
@@ -40,18 +44,27 @@ public void OnDBConnected(Database db, const char[] error, any data)
 
 public Action SNGJailbreak_Bans_OnCTBanClient(int admin, int target, int length, const char[] reason)
 {
+	if (length < g_MinLength.IntValue)
+		return Plugin_Continue;
+
 	SendChatboxMessage(admin, target, length, "CT Banned", reason);
+	return Plugin_Continue;
 }
 
 public void SBPP_OnBanPlayer(int admin, int target, int length, const char[] reason)
 {
+	if (length < g_MinLength.IntValue)
+		return;
+
 	SendChatboxMessage(admin, target, length, "banned", reason);
 }
 
 public void SourceComms_OnBlockAdded(int admin, int target, int length, int type, char[] reason)
 {
+	if (length < g_MinLength.IntValue)
+		return;
+	
 	char banType[32];
-
 	switch(type)
 	{
 		case 1:
