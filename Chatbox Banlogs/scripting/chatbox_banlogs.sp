@@ -10,6 +10,7 @@
 
 Database g_ChatboxDatabase;
 
+ConVar g_IgnoreConsole;
 ConVar g_MinLength;
 
 public Plugin myinfo = 
@@ -26,7 +27,8 @@ public void OnPluginStart()
 	g_ChatboxDatabase = null;
 	Database.Connect(OnDBConnected, "forum");
 
-	g_MinLength = CreateConVar("sm_chatboxlogs_minlength", "30");
+	g_IgnoreConsole = CreateConVar("sm_chatboxlogs_ignoreconsole", "1", "Whether to log bans by CONSOLE/autobans");
+	g_MinLength = CreateConVar("sm_chatboxlogs_minlength", "30", "Minimum ban duration to be logged");
 }
 
 public void OnDBConnected(Database db, const char[] error, any data)
@@ -44,26 +46,16 @@ public void OnDBConnected(Database db, const char[] error, any data)
 
 public Action SNGJailbreak_Bans_OnCTBanClient(int admin, int target, int length, const char[] reason)
 {
-	if (length < g_MinLength.IntValue)
-		return Plugin_Continue;
-
 	SendChatboxMessage(admin, target, length, "CT Banned", reason);
-	return Plugin_Continue;
 }
 
 public void SBPP_OnBanPlayer(int admin, int target, int length, const char[] reason)
 {
-	if (length < g_MinLength.IntValue)
-		return;
-
 	SendChatboxMessage(admin, target, length, "banned", reason);
 }
 
 public void SourceComms_OnBlockAdded(int admin, int target, int length, int type, char[] reason)
 {
-	if (length < g_MinLength.IntValue)
-		return;
-	
 	char banType[32];
 	switch(type)
 	{
@@ -85,6 +77,12 @@ void SendChatboxMessage(int admin, int target, int length, const char[] banType,
 		LogError("Could not insert chatbox message! (Database is not connected)");
 		return;
 	}
+
+	if (length < g_MinLength.IntValue)
+		return;
+
+	if (admin == 0 && g_IgnoreConsole.BoolValue)
+		return;
 
 	char targetName[32];
 	GetClientName(target, targetName, sizeof(targetName));
