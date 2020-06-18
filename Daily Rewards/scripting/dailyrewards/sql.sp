@@ -101,7 +101,7 @@ public void SQL_OnCheckLastRedeemed(Database db, DBResultSet results, const char
 		Format(query, sizeof(query), "UPDATE `dailyrewards` SET `times_redeemed` = `times_redeemed` + 1, `time_redeemed` = '%i' WHERE `steamid64` = '%s';", currentTime, authid);						 
 		g_Database.Query(SQL_OnRowUpdated, query, pack);
 
-		if (difference <= 86400 && streak + 1 > g_Streak.IntValue)
+		if (difference <= 129600 && streak + 1 > g_Streak.IntValue)
 		{
 			Format(query, sizeof(query), "UPDATE `dailyrewards` SET `streak` = 0 WHERE `steamid64` = '%s';", authid);
 			pack.WriteCell(true);
