@@ -118,7 +118,7 @@ public void SQL_OnCheckLastRedeemed(Database db, DBResultSet results, const char
 	{
 		char time[32];
 		ShowTime(cooldown - difference, time, sizeof(time));
-		PrintToChat(client, " \x02[\x01Daily Reward\x02]\x01 You may redeem your next reward in %s.", time);
+		PrintToChat(client, " \x02[\x01Daily Reward\x02]\x01 You may redeem your next reward in %s. (\x0FStreak: %i\x01)", time, streak);
 		g_bRedeemingReward[client] = false;
 		delete pack;
 	}
